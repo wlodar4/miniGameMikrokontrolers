@@ -1,0 +1,261 @@
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include "inc/hw_memmap.h"
+#include "driverlib/fpu.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/rom.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/uart.h"
+#include "grlib/grlib.h"
+#include "utils/uartstdio.h"
+#include "driverlib/gpio.h"
+#include "drivers/ili9341_240x320x262K.h"
+
+#define GPIO_PINS_ALL GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+
+int losujY () {
+	srand(time(NULL));
+	int Y = 15 + rand() % (225 - 15 + 1);
+	return Y;
+}
+
+
+int losujX () {
+	srand(time(NULL));
+	int Y = 15 + rand() % (305 - 15 + 1);
+	return Y;
+}
+
+int losujK () {
+	srand(time(NULL));
+	int K =   rand() % 4;
+	return K;
+}
+
+
+int main(void)
+{
+	tContext sContext;
+	tRectangle sRect0;
+	tRectangle sRect;
+	tRectangle sRect2;
+
+    int gora = 0;
+	int dol = 0;
+	int lewo = 0;
+	int prawo = 0; 
+
+	ROM_FPULazyStackingEnable();
+	ROM_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+	ILI9341_240x320x262K_Init();
+	GrContextInit(&sContext, &g_sILI9341_240x320x262K);
+
+	sRect0.i16XMin = 0;
+	sRect0.i16YMin = 0;
+	sRect0.i16XMax = 320;
+	sRect0.i16YMax = 240;
+	GrContextForegroundSet(&sContext, ClrWhite);
+	GrRectFill(&sContext, &sRect0);
+
+
+
+	GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PINS_ALL);
+	GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, GPIO_PINS_ALL);
+	
+
+
+
+	int wynik = 0;
+	int speed = 1;
+	int ileOdbic = 0;
+	
+
+	while(1){
+		sRect.i16XMin = 0;
+		sRect.i16YMin = 70;
+		sRect.i16XMax = 10;
+		sRect.i16YMax = 170;
+		GrContextForegroundSet(&sContext, ClrRed);
+		GrRectFill(&sContext, &sRect);
+
+		sRect2.i16XMin = 310;
+		sRect2.i16YMin = 70;
+		sRect2.i16XMax = 320;
+		sRect2.i16YMax = 170;
+		GrContextForegroundSet(&sContext, ClrBlue);
+		GrRectFill(&sContext, &sRect2);
+
+
+
+		int pilkaX = losujX();
+		int pilkaY = losujY();
+		int odbicie = losujK();
+		
+
+	    while(1)
+	    {	
+		
+	    	if(pilkaX < 10 || pilkaX > 310){	
+	    		if(pilkaX < 15) wynik = 0;
+		    	if(pilkaX > 305) wynik = 1;
+			    break;
+		    }
+
+
+	    
+
+
+		    if(pilkaY >= 230){
+			    odbicie--;
+    		}
+
+
+            if(pilkaY <= 10){
+    			odbicie++;
+	    	}
+
+	    	if (odbicie==0){
+	
+	    		if(pilkaY < sRect2.i16YMax && pilkaY > sRect2.i16YMin && pilkaX >= 305 ){
+					odbicie+=2;
+		    		ileOdbic++;
+		    	}
+			else {
+		    		pilkaX += speed;
+				    pilkaY -= speed;
+			    }
+	    	}
+
+
+		    if (odbicie==1){
+		    	if(pilkaY < sRect2.i16YMax && pilkaY > sRect2.i16YMin && pilkaX >=305)
+		    	{
+			    	odbicie+=2;
+				    ileOdbic++;
+		    	}
+		    	else
+		    	{
+			    	pilkaX += speed;
+				    pilkaY +=speed;
+			    }
+	    	}
+
+            GrContextForegroundSet(&sContext, ClrBlack);
+		    GrCircleFill(&sContext, pilkaX, pilkaY, 10);
+
+		    if (odbicie==2){
+			if(pilkaY < sRect.i16YMax && pilkaY > sRect.i16YMin && pilkaX <= 15){
+				odbicie-=2;
+				ileOdbic++;
+			}
+
+			else{
+				pilkaX -= speed;
+				pilkaY -= speed;
+			}
+			}
+
+
+			if (odbicie==3){
+				if(pilkaX <= 15 && pilkaY < sRect.i16YMax && pilkaY > sRect.i16YMin){
+					odbicie-=2;
+					ileOdbic++;
+				}
+				else{
+					pilkaX -= speed;
+					pilkaY += speed;
+				}
+			}
+
+
+
+		    dol = GPIOPinRead(GPIO_PORTE_BASE,GPIO_PIN_5);
+		    if (dol == 0){
+		    	GrContextForegroundSet(&sContext, ClrWhite);
+		    	GrRectFill(&sContext, &sRect);
+		    	GrContextForegroundSet(&sContext, ClrRed);
+		    	if(sRect.i16YMin!=0){
+			    	sRect.i16YMin--;
+				    sRect.i16YMax--;
+			    }
+		    	GrRectFill(&sContext, &sRect);
+		    }
+
+
+
+		    gora = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_0);
+		    if (gora == 0){
+		    	GrContextForegroundSet(&sContext, ClrWhite);
+		    	GrRectFill(&sContext, &sRect);
+		    	GrContextForegroundSet(&sContext, ClrRed);
+		    	if(sRect.i16YMax!=240){
+			    	sRect.i16YMin++;
+			    	sRect.i16YMax++;
+		    	}
+		    	GrRectFill(&sContext, &sRect);
+	    	}
+
+
+
+			lewo = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_7);
+			if (lewo == 0){
+				GrContextForegroundSet(&sContext, ClrWhite);
+				GrRectFill(&sContext, &sRect2);
+				GrContextForegroundSet(&sContext, ClrRed);
+				if(sRect2.i16YMin!=0){
+					sRect2.i16YMin--;
+					sRect2.i16YMax--;
+				}
+				GrContextForegroundSet(&sContext, ClrBlue);
+				GrRectFill(&sContext, &sRect2);
+			}
+
+
+
+			prawo = GPIOPinRead(GPIO_PORTE_BASE, GPIO_PIN_4);
+			if (prawo == 0){
+				GrContextForegroundSet(&sContext, ClrWhite);
+				GrRectFill(&sContext, &sRect2);
+				GrContextForegroundSet(&sContext, ClrRed);
+				if(sRect2.i16YMax!=240){
+					sRect2.i16YMin++;
+					sRect2.i16YMax++;
+				}
+				GrContextForegroundSet(&sContext, ClrBlue);
+				GrRectFill(&sContext, &sRect2);
+            }
+
+        	GrContextForegroundSet(&sContext, ClrWhite);
+	   		GrRectFill(&sContext, &sRect0);
+
+			if(ileOdbic == 5){
+				speed = 2;
+			}
+
+
+			if(ileOdbic == 10){
+				speed = 3;
+			}
+		
+		
+		}
+		
+		speed = 1;
+		if(wynik == 1){
+		 GrContextForegroundSet(&sContext, ClrRed);
+		 GrStringDrawCentered(&sContext, "Punkt dla czerownego", -1,GrContextDpyWidthGet(&sContext) / 2, (GrContextDpyHeightGet(&sContext) / 2), 0);
+		}
+
+
+		else if(wynik == 0){
+		 GrContextForegroundSet(&sContext, ClrBlue);
+		 GrStringDrawCentered(&sContext, "Punkt dla niebieskiego", -1,GrContextDpyWidthGet(&sContext) / 2, (GrContextDpyHeightGet(&sContext) / 2), 0);
+		}
+
+		
+		SysCtlDelay(SysCtlClockGet() / 2);
+		wynik = 0;
+	}
+}
